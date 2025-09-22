@@ -1,6 +1,7 @@
+# bot.py
+
 import logging
 import os
-import re
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -13,6 +14,7 @@ from telegram.ext import (
     ConversationHandler,
     ContextTypes
 )
+from config import TELEGRAM_TOKEN, HEADERS, DEFAULT_AREA
 
 # Настройка логирования
 logging.basicConfig(
@@ -36,7 +38,7 @@ async def pages(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Сохранение количества страниц и запрос поискового запроса"""
     try:
         pages = int(update.message.text)
-        if pages < 1 or pages > 50:  # Ограничение разумным количеством
+        if pages < 1 or pages > 50:
             raise ValueError
         context.user_data['pages'] = pages
         await update.message.reply_text(
@@ -62,7 +64,6 @@ async def query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     )
 
     try:
-        # Запуск парсинга
         urls = parse_vacancy_links(pages, query_text)
 
         if not urls:
@@ -75,7 +76,6 @@ async def query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             f"✅ Найдено {len(urls)} вакансий. Собираю детали..."
         )
 
-        # Сбор данных по вакансиям
         data = collect_vacancy_data(urls)
 
         if not data:
@@ -84,7 +84,6 @@ async def query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             )
             return ConversationHandler.END
 
-        # Сохранение и отправка файлов
         csv_path, excel_path = save_data(data)
 
         with open(csv_path, 'rb') as csv:
@@ -101,7 +100,6 @@ async def query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
                 caption="📊 Результаты в формате Excel"
             )
 
-        # Удаление временных файлов
         os.remove(csv_path)
         os.remove(excel_path)
 
@@ -122,26 +120,22 @@ async def query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 def parse_vacancy_links(pages: int, query: str) -> list:
     """Парсинг ссылок на вакансии"""
     urls = []
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-    }
 
     for page in range(pages):
         url = (
             f"https://hh.ru/search/vacancy?"
             f"text={query}&"
-            f"area=1&"  # 1 - Москва, 113 - Сургут (можно изменить)
+            f"area={DEFAULT_AREA}&"
             f"page={page}"
         )
 
         try:
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=HEADERS)
             response.raise_for_status()
             soup = BeautifulSoup(response.text, 'html.parser')
 
             for link in soup.find_all('a', {'data-qa': 'serp-item__title'}):
                 vacancy_url = link['href']
-                # Фильтрация только валидных ссылок на вакансии
                 if 'hh.ru/vacancy' in vacancy_url and vacancy_url not in urls:
                     urls.append(vacancy_url)
         except Exception as e:
@@ -152,36 +146,27 @@ def parse_vacancy_links(pages: int, query: str) -> list:
 def collect_vacancy_data(urls: list) -> list:
     """Сбор данных по каждой вакансии"""
     data = []
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-    }
 
-    for i, url in enumerate(urls, 1):
+    for url in urls:
         try:
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=HEADERS)
             response.raise_for_status()
             soup = BeautifulSoup(response.text, 'html.parser')
-            html = response.text
 
-            # 1. Название вакансии
             title = soup.find('h1', {'data-qa': 'vacancy-title'})
             title = title.get_text(strip=True) if title else "Не указано"
 
-            # 2. Компания
             company = soup.find('a', {'data-qa': 'vacancy-company-name'})
             company = company.get_text(strip=True) if company else "Не указана"
 
-            # 3. Адрес
             address = soup.find('p', {'data-qa': 'vacancy-view-location'})
             if not address:
                 address = soup.find('span', {'data-qa': 'vacancy-view-raw-address'})
             address = address.get_text(strip=True) if address else "Не указан"
 
-            # 4. Зарплата
             salary = soup.find('span', {'data-qa': 'vacancy-salary-compensation'})
             salary = salary.get_text(strip=True) if salary else "Не указана"
 
-            # 5. Тип выплаты
             tax = "на руки" if "на руки" in salary.lower() else "до вычета налогов"
 
             data.append({
@@ -219,13 +204,8 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 def main() -> None:
     """Запуск бота"""
-    # Замените YOUR_TOKEN на токен вашего бота
-    TOKEN = "YOUR_TOKEN"
+    application = Application.builder().token(TELEGRAM_TOKEN).build()
 
-    # Создаем приложение
-    application = Application.builder().token(TOKEN).build()
-
-    # Настройка ConversationHandler
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
@@ -238,7 +218,6 @@ def main() -> None:
     application.add_handler(conv_handler)
     application.add_handler(CommandHandler("cancel", cancel))
 
-    # Запуск бота
     logger.info("Бот запущен")
     application.run_polling()
     logger.info("Бот остановлен")
