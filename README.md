@@ -31,3 +31,4 @@ Telegram-бот для поиска вакансий на [HH.ru](https://hh.ru)
 ```bash
 git clone https://github.com/ваш-ник/hh-vacancy-bot.git
 cd hh-vacancy-bot
+pip install -r requirements.txt
