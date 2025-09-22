@@ -1,0 +1,1 @@
+# hh-vacancy-bot
