@@ -10,7 +10,7 @@ Telegram-бот для поиска вакансий на [HH.ru](https://hh.ru)
 
 > 🔍 Работает с последней версией `python-telegram-bot` (v20.0+)
 
-![Demo](docs/screenshots/demo.gif)
+![Demo](demo.gif)
 
 ---
 
