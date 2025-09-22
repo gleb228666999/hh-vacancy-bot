@@ -1,12 +1,16 @@
 # config.py
+BOT_TOKEN = 'YOUR_BOT_TOKEN_HERE'  # Замените на ваш токен
+MAX_PAGES = 5  # Максимальное количество страниц для парсинга
+MAX_VACANCIES = 100  # Максимальное количество обрабатываемых вакансий
 
-# Токен вашего Telegram-бота
-TELEGRAM_TOKEN = "YOUR_TOKEN"
-
-# Заголовки для запросов
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+# Коды регионов HH.ru
+CITIES = {
+    "1": "Москва",
+    "2": "Санкт-Петербург",
+    "78": "Екатеринбург",
+    "84": "Сургут",
+    "113": "Россия (все города)"
 }
 
-# Город (area): 1 - Москва, 113 - Сургут (можно изменить)
-DEFAULT_AREA = 1
+DEFAULT_CITY = "113"  # Россия по умолчанию
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
